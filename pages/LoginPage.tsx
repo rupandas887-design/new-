@@ -27,7 +27,7 @@ const LoginPage: React.FC = () => {
     if (currentUser) {
         if (currentUser.role === Role.MasterAdmin) navigate('/admin');
         else if (currentUser.role === Role.Organisation) navigate('/organisation');
-        else if (currentUser.role === Role.Volunteer) navigate('/volunteer');
+        else if (currentUser.role === Role.Volunteer) navigate('/volunteer/new-member');
         else if (currentUser.role === Role.MemberUpdates) navigate('/member-updates');
     }
   }, [currentUser, navigate]);
@@ -116,7 +116,7 @@ const LoginPage: React.FC = () => {
                             ) : (
                               <>
                                 <ShieldCheck size={20} />
-                                <span>Authorize Access</span>
+                                <span>AUTHORIZE ACCESS</span>
                               </>
                             )}
                         </Button>

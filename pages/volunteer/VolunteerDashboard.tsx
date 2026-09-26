@@ -366,21 +366,23 @@ const VolunteerDashboard: React.FC = () => {
                 <div className="space-y-6 sm:space-y-8">
                   <div className={`p-4 sm:p-6 border rounded-[1.5rem] sm:rounded-[2rem] relative overflow-hidden group transition-all duration-500 ${isEditingVerified ? 'bg-green-500/5 border-green-500/10' : 'bg-blue-500/5 border-blue-500/10'}`}>
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center relative z-10">
-                      <div className="lg:col-span-5 space-y-3">
-                          <div className="flex items-center gap-2">
-                              <ImageIcon className={isEditingVerified ? "text-green-500/60" : "text-blue-500/60"} size={12} />
-                              <p className={`text-[9px] font-black uppercase tracking-widest ${isEditingVerified ? "text-green-500/60" : "text-blue-500/60"}`}>Identification Scan</p>
-                          </div>
-                          <div className="rounded-[1rem] sm:rounded-[1.25rem] overflow-hidden border border-white/10 bg-black/40 relative group/img shadow-xl aspect-[1.58/1]">
-                              <img src={editingMember.aadhaar_front_url} className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105" alt="Aadhaar Front" />
-                              <a href={editingMember.aadhaar_front_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/70 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm">
-                                  <ExternalLink className="text-white" size={24} />
-                              </a>
-                          </div>
-                      </div>
+                      {editingMember.aadhaar_front_url ? (
+                        <div className="lg:col-span-5 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <ImageIcon className={isEditingVerified ? "text-green-500/60" : "text-blue-500/60"} size={12} />
+                                <p className={`text-[9px] font-black uppercase tracking-widest ${isEditingVerified ? "text-green-500/60" : "text-blue-500/60"}`}>Identification Scan</p>
+                            </div>
+                            <div className="rounded-[1rem] sm:rounded-[1.25rem] overflow-hidden border border-white/10 bg-black/40 relative group/img shadow-xl aspect-[1.58/1]">
+                                <img src={editingMember.aadhaar_front_url} className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-105" alt="Aadhaar Front" />
+                                <a href={editingMember.aadhaar_front_url} target="_blank" rel="noopener noreferrer" className="absolute inset-0 bg-black/70 opacity-0 group-hover/img:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm">
+                                    <ExternalLink className="text-white" size={24} />
+                                </a>
+                            </div>
+                        </div>
+                      ) : null}
                       
-                      <div className="lg:col-span-7 flex flex-col justify-center space-y-4 lg:space-y-5">
-                          <div className="space-y-4">
+                      <div className={`${editingMember.aadhaar_front_url ? 'lg:col-span-7' : 'lg:col-span-12'} flex flex-col justify-center space-y-4 lg:space-y-5`}>
+                        <div className="space-y-4">
                               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3">
                                   <div className="space-y-1">
                                       <p className={`text-[9px] font-black uppercase tracking-[0.4em] ${isEditingVerified ? "text-green-500" : "text-blue-500"}`}>Target Identity</p>

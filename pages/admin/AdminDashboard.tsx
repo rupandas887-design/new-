@@ -171,60 +171,60 @@ const AdminDashboard: React.FC = () => {
 
     return (
         <DashboardLayout title="Network Intelligence Dashboard">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <Card className="p-8 border-l-4 border-orange-600 bg-[#080808] hover:bg-[#0a0a0a] transition-all group relative overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                <Card className="p-5 sm:p-8 border-l-4 border-orange-600 bg-[#080808] hover:bg-[#0a0a0a] transition-all group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform">
                         <Map size={80} />
                     </div>
                     <div className="flex justify-between items-center mb-4">
-                      <Shield className="text-orange-600 group-hover:scale-110 transition-transform" size={32} strokeWidth={1.5} />
+                      <Shield className="text-orange-600 group-hover:scale-110 transition-transform" size={28} strokeWidth={1.5} />
                       <span className="text-[9px] font-black text-orange-600/50 uppercase tracking-[0.2em]">Deployments</span>
                     </div>
                     <div>
                         <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold mb-1">Active Organizations</p>
-                        <p className="text-5xl font-black text-orange-500">{loading ? '...' : organisations.length}</p>
+                        <p className="text-3xl sm:text-5xl font-black text-orange-500 font-mono tabular-nums">{loading ? '...' : organisations.length}</p>
                     </div>
                 </Card>
                 
                 <button 
                     onClick={() => setIsVolunteersModalOpen(true)}
-                    className="text-left w-full block group relative overflow-hidden rounded-lg outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="text-left w-full block group relative overflow-hidden rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                 >
-                    <Card className="p-8 border-l-4 border-blue-600 bg-[#080808] group-hover:bg-[#0a0a0a] transition-all h-full relative">
+                    <Card className="p-5 sm:p-8 border-l-4 border-blue-600 bg-[#080808] group-hover:bg-[#0a0a0a] transition-all h-full relative">
                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:-rotate-12 transition-transform">
                             <Users size={80} />
                         </div>
                         <div className="flex justify-between items-center mb-4">
-                            <Users className="text-blue-600 group-hover:scale-110 transition-transform" size={32} strokeWidth={1.5} />
+                            <Users className="text-blue-600 group-hover:scale-110 transition-transform" size={28} strokeWidth={1.5} />
                             <span className="text-[9px] font-black text-blue-600/50 uppercase tracking-[0.2em]">Personnel</span>
                         </div>
                         <div>
                             <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold mb-1">Volunteers</p>
-                            <p className="text-5xl font-black text-orange-500">{loading ? '...' : volunteersWithOrg.length}</p>
-                            <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-4 opacity-60 group-hover:opacity-100 transition-opacity">Access Personnel File →</p>
+                            <p className="text-3xl sm:text-5xl font-black text-orange-500 font-mono tabular-nums">{loading ? '...' : volunteersWithOrg.length}</p>
+                            <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-4 opacity-75 group-hover:opacity-100 transition-opacity">Access Personnel File →</p>
                         </div>
                     </Card>
                 </button>
 
-                <Card className="p-8 border-l-4 border-green-600 bg-[#080808] hover:bg-[#0a0a0a] transition-all group relative overflow-hidden">
+                <Card className="p-5 sm:p-8 border-l-4 border-green-600 bg-[#080808] hover:bg-[#0a0a0a] transition-all group relative overflow-hidden sm:col-span-2 lg:col-span-1">
                     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-125 transition-transform">
                         <Database size={80} />
                     </div>
                     <div className="flex justify-between items-center mb-4">
-                      <UserCheck className="text-green-600 group-hover:scale-110 transition-transform" size={32} strokeWidth={1.5} />
+                      <UserCheck className="text-green-600 group-hover:scale-110 transition-transform" size={28} strokeWidth={1.5} />
                       <span className="text-[9px] font-black text-green-600/50 uppercase tracking-[0.2em]">Global Base</span>
                     </div>
                     <div>
                         <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold mb-1">Total Enrolled Members</p>
-                        <p className="text-5xl font-black text-orange-500">{loading ? '...' : members.length}</p>
+                        <p className="text-3xl sm:text-5xl font-black text-orange-500 font-mono tabular-nums">{loading ? '...' : members.length}</p>
                     </div>
                 </Card>
             </div>
 
-            <div className="mt-12">
+            <div className="mt-8 sm:mt-12">
                 <Card title="Organization Operational Matrix" className="bg-[#050505] border-white/5">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-left text-sm min-w-[550px]">
                             <thead className="border-b border-gray-800">
                                 <tr className="text-gray-500 uppercase tracking-wider text-[10px] font-black">
                                     <th className="p-5">Organization Node</th>

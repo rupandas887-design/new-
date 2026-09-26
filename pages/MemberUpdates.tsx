@@ -208,11 +208,11 @@ const MemberUpdates: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3 w-full md:w-auto">
                   <Button 
                     variant="secondary" 
                     onClick={() => setUpdateType('address')}
-                    className="text-[10px] font-black tracking-widest uppercase"
+                    className="flex-1 md:flex-initial text-[10px] font-black tracking-widest uppercase py-3"
                     disabled={member.status === MemberStatus.Deceased}
                   >
                     <MapPin size={14} className="mr-2" />
@@ -221,7 +221,7 @@ const MemberUpdates: React.FC = () => {
                   <Button 
                     variant="secondary" 
                     onClick={() => setUpdateType('deceased')}
-                    className="text-[10px] font-black tracking-widest uppercase border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+                    className="flex-1 md:flex-initial text-[10px] font-black tracking-widest uppercase border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white py-3"
                     disabled={member.status === MemberStatus.Deceased}
                   >
                     <Skull size={14} className="mr-2" />

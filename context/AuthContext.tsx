@@ -17,14 +17,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const mapStringToRole = (roleStr: any): Role | string => {
     if (!roleStr) return 'Guest';
     const normalized = String(roleStr).toLowerCase().trim();
-    if (normalized === 'masteradmin' || normalized === 'superadmin' || normalized === 'master_admin') {
+    if (normalized === 'masteradmin' || normalized === 'superadmin' || normalized === 'master_admin' || normalized === 'admin') {
         return Role.MasterAdmin;
     }
-    if (normalized === 'organisation' || normalized === 'org' || normalized === 'organisationadmin') {
+    if (normalized === 'organisation' || normalized === 'org' || normalized === 'organisationadmin' || normalized === 'organization') {
         return Role.Organisation;
     }
     if (normalized === 'volunteer') {
         return Role.Volunteer;
+    }
+    if (normalized === 'memberupdates' || normalized === 'member_updates' || normalized === 'member updates') {
+        return Role.MemberUpdates;
     }
     return roleStr;
 };
@@ -110,6 +113,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         status: 'Active',
         passwordResetPending: false
       };
+      try {
+        sessionStorage.setItem('ssk_mock_session', JSON.stringify(mockUser));
+      } catch (e) {
+        console.error("Failed to persist mock session:", e);
+      }
       setUser(mockUser);
       return { user: mockUser };
     }
@@ -137,6 +145,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    try {
+      sessionStorage.removeItem('ssk_mock_session');
+      localStorage.removeItem('ssk_last_authenticated_route');
+    } catch (e) {
+      console.error("Storage cleanup error:", e);
+    }
     await supabase.auth.signOut();
     setUser(null);
   };
@@ -163,57 +177,118 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       
       return { success: true };
-  }
+  };
 
   // Effect for Auth State and Real-Time Security Monitoring
   useEffect(() => {
     let profileSubscription: any = null;
+    let isMounted = true;
+
+    const setupProfileSubscription = (userId: string) => {
+      if (profileSubscription) {
+        supabase.removeChannel(profileSubscription);
+      }
+      profileSubscription = supabase
+        .channel(`profile-security-${userId}`)
+        .on(
+          'postgres_changes',
+          { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'profiles', 
+            filter: `id=eq.${userId}` 
+          },
+          () => {
+            console.debug("Security profile update detected. Synchronizing...");
+            refreshProfile();
+          }
+        )
+        .subscribe();
+    };
 
     const init = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            try {
-                const mapped = await fetchProfile(session.user.id, session.user);
-                setUser(mapped);
-
-                // Set up real-time monitoring for THIS user's profile
-                // This ensures if an admin flips 'password_reset_pending', this session reacts immediately
-                profileSubscription = supabase
-                    .channel(`profile-security-${session.user.id}`)
-                    .on(
-                        'postgres_changes',
-                        { 
-                            event: 'UPDATE', 
-                            schema: 'public', 
-                            table: 'profiles', 
-                            filter: `id=eq.${session.user.id}` 
-                        },
-                        () => {
-                            console.debug("Security profile update detected. Synchronizing...");
-                            refreshProfile();
-                        }
-                    )
-                    .subscribe();
-
-            } catch (e) {
-                console.error("Auth init error:", e);
+      try {
+        // 1. Check for mock session first
+        const mockSaved = sessionStorage.getItem('ssk_mock_session');
+        if (mockSaved) {
+          try {
+            const parsed = JSON.parse(mockSaved);
+            if (parsed && parsed.email && isMounted) {
+              setUser(parsed);
+              setLoading(false);
+              return;
             }
+          } catch {
+            sessionStorage.removeItem('ssk_mock_session');
+          }
         }
-        setLoading(false);
+
+        // 2. Check Supabase authenticated session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.warn("Session retrieval note:", sessionError.message);
+        }
+
+        if (session?.user && isMounted) {
+          const mapped = await fetchProfile(session.user.id, session.user);
+          if (isMounted) {
+            setUser(mapped);
+            if (mapped) {
+              setupProfileSubscription(session.user.id);
+            }
+          }
+        } else if (isMounted) {
+          setUser(null);
+        }
+      } catch (e) {
+        console.error("Auth init error:", e);
+        if (isMounted) {
+          setUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     };
 
     init();
 
-    return () => {
-        if (profileSubscription) {
-            supabase.removeChannel(profileSubscription);
+    // Listen to Supabase auth events (token refresh, signout, etc.)
+    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          if (isMounted) {
+            setUser(null);
+            setLoading(false);
+          }
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user && isMounted) {
+            const mapped = await fetchProfile(session.user.id, session.user);
+            if (isMounted) {
+              setUser(mapped);
+              if (mapped) {
+                setupProfileSubscription(session.user.id);
+              }
+              setLoading(false);
+            }
+          }
         }
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      if (profileSubscription) {
+        supabase.removeChannel(profileSubscription);
+      }
+      authListener?.unsubscribe();
     };
   }, [fetchProfile, refreshProfile]);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, refreshProfile, updatePassword }}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
