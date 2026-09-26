@@ -53,12 +53,25 @@ const RouteTracker: React.FC = () => {
   return null;
 };
 
+const hasStoredAuthToken = (): boolean => {
+  try {
+    if (typeof window === 'undefined') return false;
+    if (sessionStorage.getItem('ssk_mock_session')) return true;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+        const val = localStorage.getItem(key);
+        if (val && val.includes('access_token')) return true;
+      }
+    }
+  } catch {
+    return false;
+  }
+  return false;
+};
+
 const PublicLandingRoute: React.FC = () => {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    return <AuthLoadingSplash />;
-  }
 
   // If already authenticated, restore to their active route or role default
   if (user) {
@@ -67,6 +80,11 @@ const PublicLandingRoute: React.FC = () => {
       return <Navigate to={savedRoute} replace />;
     }
     return <Navigate to={getDefaultRouteForRole(user.role)} replace />;
+  }
+
+  // Only display splash screen if loading AND an actual session token exists in local storage
+  if (loading && hasStoredAuthToken()) {
+    return <AuthLoadingSplash />;
   }
 
   return <LandingPage />;

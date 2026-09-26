@@ -12,12 +12,6 @@ import { supabase } from '../supabase/client';
 import { Member, Organisation, Role } from '../types';
 import { 
   Users, 
-  Globe, 
-  HeartPulse, 
-  ShieldCheck, 
-  UserCheck, 
-  HeartHandshake, 
-  Sparkles, 
   Activity, 
   Building2, 
   Compass, 
@@ -26,7 +20,13 @@ import {
   UserPlus, 
   Share2, 
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck,
+  UserCheck,
+  HeartHandshake,
+  Sparkles,
+  Phone,
+  Radio
 } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
@@ -37,19 +37,25 @@ const LandingPage: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const fetchData = useCallback(async () => {
+    setLoading(true);
     try {
       const [mRes, oRes, pRes] = await Promise.all([
         supabase.from('members').select('*'),
         supabase.from('organisations').select('*'),
         supabase.from('profiles').select('*, organisations(name)')
       ]);
-      if (mRes.data) setMembers(mRes.data);
-      if (oRes.data) setOrgsDataRaw(oRes.data);
+
+      if (mRes.error) console.error("LandingPage members query failed:", mRes.error);
+      if (oRes.error) console.error("LandingPage organisations query failed:", oRes.error);
+      if (pRes.error) console.error("LandingPage profiles query failed:", pRes.error);
+
+      if (mRes.data) setMembers(mRes.data as Member[]);
+      if (oRes.data) setOrgsDataRaw(oRes.data as Organisation[]);
       if (pRes.data) {
-        setVolsDataRaw(pRes.data.filter(p => String(p.role).toLowerCase() === 'volunteer'));
+        setVolsDataRaw((pRes.data as any[]).filter(p => String(p.role || '').toLowerCase() === 'volunteer'));
       }
     } catch (err) {
-      console.error("Sync Failure:", err);
+      console.error("LandingPage Sync Failure:", err);
     } finally {
       setLoading(false);
     }
@@ -61,36 +67,29 @@ const LandingPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [fetchData]);
 
-  // Process and de-duplicate both lists with cross-role exclusivity
+  // Process and de-duplicate lists
   const { organisations, volunteers } = useMemo(() => {
-    const seenIdentities = new Set<string>();
+    const seenOrgIdentities = new Set<string>();
 
-    // 1. Process Organisations (Primary Priority)
     const uniqueOrgs: Organisation[] = [];
     (orgsDataRaw || []).forEach(o => {
       const nameKey = (o.name || '').toLowerCase().trim();
       const secretaryKey = (o.secretary_name || '').toLowerCase().trim();
       const mobileKey = (o.mobile || '').trim();
       
-      // Create identity footprint (combining org name, lead name and mobile)
       const footprint = `${secretaryKey}-${mobileKey}`;
-      
-      // De-duplicate within Orgs list itself
-      if (seenIdentities.has(footprint)) return;
+      if (seenOrgIdentities.has(footprint)) return;
       
       uniqueOrgs.push(o);
-      seenIdentities.add(footprint);
-      // Also track the business name to be extra safe
-      seenIdentities.add(`${nameKey}-${mobileKey}`);
+      seenOrgIdentities.add(footprint);
+      seenOrgIdentities.add(`${nameKey}-${mobileKey}`);
     });
 
-    // 2. Prepare Volunteer Enrollment Map
     const enrollmentMap = members.reduce((acc, m) => {
       if (m.volunteer_id) acc[m.volunteer_id] = (acc[m.volunteer_id] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    // 3. Process Volunteers (Exclude if already represented in Organizations)
     const uniqueVols: any[] = [];
     const volDedupeSet = new Set<string>();
 
@@ -99,12 +98,6 @@ const LandingPage: React.FC = () => {
       const mobileKey = (v.mobile || '').trim();
       const footprint = `${nameKey}-${mobileKey}`;
 
-      // CROSS-SECTION DEDUPLICATION:
-      // If this person is already an Org lead or the Org identity, skip them here.
-      if (seenIdentities.has(footprint)) return;
-      
-      // SELF-DEDUPLICATION:
-      // Prevent the same volunteer from appearing twice in the volunteer list
       if (volDedupeSet.has(footprint)) return;
 
       uniqueVols.push({
@@ -123,39 +116,46 @@ const LandingPage: React.FC = () => {
     });
 
     return { 
-      organisations: uniqueOrgs.reverse(), // Newest first
+      organisations: uniqueOrgs.reverse(),
       volunteers: uniqueVols.reverse() 
     };
   }, [orgsDataRaw, volsDataRaw, members]);
 
   return (
-    <div className="bg-black text-white min-h-screen selection:bg-[#FF6600]/30 overflow-x-hidden font-jost">
+    <div className="bg-[#F5F7FB] text-slate-900 min-h-screen selection:bg-saffron-500/20 overflow-x-hidden font-sans relative">
+      {/* Extremely subtle ambient lighting across canvas */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none">
+        <div className="absolute top-12 left-1/4 w-96 h-96 bg-saffron-500/[0.03] rounded-full blur-3xl"></div>
+        <div className="absolute top-24 right-1/4 w-96 h-96 bg-saffron-400/[0.03] rounded-full blur-3xl"></div>
+      </div>
+
       <Header isLandingPage />
 
       {/* Hero Section */}
-      <section className="pt-6 sm:pt-10 md:pt-14 pb-8 sm:pb-12 md:pb-18 px-3 sm:px-6">
+      <section className="pt-8 sm:pt-12 md:pt-16 pb-12 sm:pb-16 px-4 sm:px-6 relative z-10">
         <div className="max-w-[1200px] mx-auto text-center">
-          {/* Community Intelligence Section */}
-          <div className="max-w-4xl mx-auto rounded-2xl sm:rounded-3xl border border-white/10 bg-[#070707] shadow-2xl p-4 sm:p-8 md:p-12 mb-10 sm:mb-14 md:mb-16 text-left relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-[#FF6600]/5 blur-3xl rounded-full pointer-events-none -mr-20 -mt-20"></div>
+          
+          {/* Main Community Intelligence Surface */}
+          <div className="max-w-4xl mx-auto bg-transparent border-none shadow-none p-6 sm:p-10 md:p-12 mb-12 sm:mb-16 text-left relative overflow-hidden">
+            {/* Subtle Saffron Glow in top right */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-saffron-500/[0.05] via-saffron-400/[0.03] to-transparent rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 
             {/* Header & Subtitle */}
-            <div className="border-b border-white/5 pb-5 sm:pb-8 mb-6 sm:mb-8 relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 mb-3.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#FF6600] animate-pulse"></span>
-                <Activity size={12} className="text-[#FF6600]" />
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] text-[#FF6600]">
-                  SSK PEOPLE
+            <div className="pb-6 sm:pb-8 mb-6 sm:mb-8 relative z-10 flex flex-col items-center text-center mx-auto max-w-3xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-saffron-50 border border-saffron-200/60 mb-4 shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-saffron-500 animate-pulse"></span>
+                <Activity size={13} className="text-saffron-600" />
+                <span className="text-xs font-bold uppercase tracking-wider text-saffron-700">
+                  SSK Samaj Intelligence
                 </span>
               </div>
               
-              <h2 className="font-cinzel text-base sm:text-xl md:text-2xl lg:text-3xl font-bold uppercase tracking-wide text-white leading-snug break-words">
-                A LIVE COMMUNITY DASHBOARD FOR A STRONGER SSK SAMAJ
-              </h2>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight text-center">
+                A Live Community Dashboard for a Stronger SSK Samaj
+              </h1>
 
-              <div className="flex items-start sm:items-center gap-2.5 mt-3 sm:mt-4 p-3 sm:p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
-                <Target size={16} className="text-[#FF6600] shrink-0 mt-0.5 sm:mt-0" />
-                <p className="text-xs sm:text-sm md:text-base text-orange-200/90 font-medium tracking-wide">
+              <div className="flex items-center justify-center mt-4 bg-transparent border-none shadow-none text-center">
+                <p className="text-xs sm:text-sm md:text-base text-saffron-950 font-semibold tracking-tight text-center">
                   Know Our People. Understand Their Needs. Build Better Support.
                 </p>
               </div>
@@ -163,85 +163,88 @@ const LandingPage: React.FC = () => {
 
             {/* Narrative Feature Blocks */}
             <div className="space-y-3.5 sm:space-y-4 relative z-10">
-              <div className="p-3.5 sm:p-4 rounded-xl bg-white/[0.015] border border-white/5 flex items-start gap-3 sm:gap-4 hover:border-orange-500/20 transition-all">
-                <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/15 text-[#FF6600] shrink-0 mt-0.5">
-                  <Activity size={16} />
+              <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100 flex items-start gap-3.5 sm:gap-4 hover:border-saffron-200 transition-colors">
+                <div className="p-2.5 rounded-xl bg-saffron-50 border border-saffron-100 text-saffron-600 shrink-0 mt-0.5">
+                  <Activity size={18} />
                 </div>
-                <p className="text-xs sm:text-sm md:text-base text-gray-300 leading-relaxed">
-                  SSK PEOPLE is a community-driven Live Registry &amp; Intelligence Dashboard created to help the SSK Samaj understand its people beyond numbers.
+                <p className="text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed font-normal">
+                  <strong className="text-slate-900 font-semibold">SSK PEOPLE</strong> is a community-driven Live Registry &amp; Intelligence Dashboard created to help the SSK Samaj understand its people beyond numbers.
                 </p>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-xl bg-white/[0.015] border border-white/5 flex items-start gap-3 sm:gap-4 hover:border-orange-500/20 transition-all">
-                <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/15 text-blue-400 shrink-0 mt-0.5">
-                  <UserCheck size={16} />
+              <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100 flex items-start gap-3.5 sm:gap-4 hover:border-saffron-200 transition-colors">
+                <div className="p-2.5 rounded-xl bg-saffron-100 border border-saffron-200 text-saffron-700 shrink-0 mt-0.5">
+                  <UserCheck size={18} />
                 </div>
-                <p className="text-xs sm:text-sm md:text-base text-gray-300 leading-relaxed">
+                <p className="text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed font-normal">
                   As registrations are verified and continuously added by Samaj organisations and dedicated volunteers, this platform brings together real community data to reveal who our people are, what they need, and where support is required.
                 </p>
               </div>
 
-              <div className="p-3.5 sm:p-4 rounded-xl bg-white/[0.015] border border-white/5 flex items-start gap-3 sm:gap-4 hover:border-orange-500/20 transition-all">
-                <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/15 text-green-400 shrink-0 mt-0.5">
-                  <Layers size={16} />
+              <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-100 flex items-start gap-3.5 sm:gap-4 hover:border-emerald-200 transition-colors">
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 shrink-0 mt-0.5">
+                  <Layers size={18} />
                 </div>
-                <p className="text-xs sm:text-sm md:text-base text-gray-300 leading-relaxed">
+                <p className="text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed font-normal">
                   From Education, Jobs and Business to Health, Marriage, Housing and Government Assistance, SSK PEOPLE is designed to transform individual needs into a clear community-level view—helping Samaj organisations and volunteers plan, connect and act more effectively.
                 </p>
               </div>
             </div>
 
             {/* Manifesto Callout & Three Pillars */}
-            <div className="mt-6 sm:mt-8 p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-white/[0.03] to-transparent border border-white/10 relative z-10">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={16} className="text-[#FF6600]" />
-                <p className="font-cinzel font-bold text-xs sm:text-sm md:text-base tracking-[0.2em] text-[#FF6600] uppercase">
+            <div className="mt-8 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-[#0B1020] via-[#0E1528] to-[#111827] text-white shadow-xl relative z-10 overflow-hidden">
+              {/* Subtle ambient light inside dark card */}
+              <div className="absolute top-0 right-0 w-60 h-60 bg-gradient-to-br from-saffron-500/20 to-saffron-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="flex items-center gap-2 mb-2 relative z-10">
+                <Sparkles size={16} className="text-saffron-400" />
+                <p className="text-xs sm:text-sm font-bold tracking-wider text-saffron-300 uppercase">
                   THIS IS MORE THAN A REGISTRY.
                 </p>
               </div>
-              <p className="text-white text-sm sm:text-base md:text-lg font-medium pl-6">
-                It is a LIVE picture of our community.
+              <p className="text-white text-base sm:text-xl font-bold relative z-10">
+                It is a live, transparent picture of our community.
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mt-5">
-                <div className="p-3.5 sm:p-4 rounded-xl bg-black/70 border border-white/5 flex flex-col justify-between gap-3 group hover:border-orange-500/30 transition-all">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-6 relative z-10">
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-saffron-500/20 text-saffron-300 border border-saffron-500/30">
                       <UserCheck size={14} />
                     </div>
-                    <span className="text-[10px] uppercase font-black tracking-widest text-orange-400/80">
+                    <span className="text-[11px] uppercase font-bold tracking-wider text-saffron-200">
                       Collective Depth
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-300 font-normal leading-snug">
+                  <p className="text-xs text-slate-300 font-normal leading-snug">
                     Every verified member adds to the collective understanding of our Samaj.
                   </p>
                 </div>
 
-                <div className="p-3.5 sm:p-4 rounded-xl bg-black/70 border border-white/5 flex flex-col justify-between gap-3 group hover:border-blue-500/30 transition-all">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-saffron-500/20 text-saffron-300 border border-saffron-500/30">
                       <Target size={14} />
                     </div>
-                    <span className="text-[10px] uppercase font-black tracking-widest text-blue-400/80">
+                    <span className="text-[11px] uppercase font-bold tracking-wider text-saffron-200">
                       Actionable Need
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-300 font-normal leading-snug">
+                  <p className="text-xs text-slate-300 font-normal leading-snug">
                     Every identified need creates an opportunity to support.
                   </p>
                 </div>
 
-                <div className="p-3.5 sm:p-4 rounded-xl bg-black/70 border border-white/5 flex flex-col justify-between gap-3 group hover:border-green-500/30 transition-all">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20">
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       <Building2 size={14} />
                     </div>
-                    <span className="text-[10px] uppercase font-black tracking-widest text-green-400/80">
+                    <span className="text-[11px] uppercase font-bold tracking-wider text-emerald-200">
                       United Network
                     </span>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-300 font-normal leading-snug">
+                  <p className="text-xs text-slate-300 font-normal leading-snug">
                     Every volunteer and organisation becomes part of the solution.
                   </p>
                 </div>
@@ -249,54 +252,54 @@ const LandingPage: React.FC = () => {
             </div>
 
             {/* Action Creed & Closing */}
-            <div className="mt-6 sm:mt-8 pt-5 sm:pt-7 border-t border-white/5 flex flex-col items-center text-center space-y-4 relative z-10">
-              {/* Responsive Stepper Chain */}
+            <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center text-center space-y-4 relative z-10">
               <div className="w-full flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-white text-xs sm:text-sm font-semibold hover:border-orange-500/40 transition-colors">
-                  <UserPlus size={14} className="text-[#FF6600]" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 text-xs sm:text-sm font-semibold">
+                  <UserPlus size={14} className="text-saffron-600" />
                   <span>Register</span>
                 </div>
-                <ArrowRight size={12} className="text-gray-600 hidden sm:block" />
+                <ArrowRight size={12} className="text-slate-400 hidden sm:block" />
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-white text-xs sm:text-sm font-semibold hover:border-orange-500/40 transition-colors">
-                  <ShieldCheck size={14} className="text-green-400" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 text-xs sm:text-sm font-semibold">
+                  <ShieldCheck size={14} className="text-emerald-600" />
                   <span>Verify</span>
                 </div>
-                <ArrowRight size={12} className="text-gray-600 hidden sm:block" />
+                <ArrowRight size={12} className="text-slate-400 hidden sm:block" />
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-white text-xs sm:text-sm font-semibold hover:border-orange-500/40 transition-colors">
-                  <Compass size={14} className="text-blue-400" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 text-xs sm:text-sm font-semibold">
+                  <Compass size={14} className="text-saffron-600" />
                   <span>Understand</span>
                 </div>
-                <ArrowRight size={12} className="text-gray-600 hidden sm:block" />
+                <ArrowRight size={12} className="text-slate-400 hidden sm:block" />
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/10 text-white text-xs sm:text-sm font-semibold hover:border-orange-500/40 transition-colors">
-                  <Share2 size={14} className="text-purple-400" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-slate-700 text-xs sm:text-sm font-semibold">
+                  <Share2 size={14} className="text-saffron-600" />
                   <span>Connect</span>
                 </div>
-                <ArrowRight size={12} className="text-gray-600 hidden sm:block" />
+                <ArrowRight size={12} className="text-slate-400 hidden sm:block" />
 
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/25 text-[#FF6600] text-xs sm:text-sm font-bold shadow-sm">
+                <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[#FF8A00] to-[#E87500] text-black text-xs sm:text-sm font-bold shadow-sm">
                   <HeartHandshake size={14} />
                   <span>Support</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-2 max-w-lg mx-auto pt-1">
-                <CheckCircle2 size={15} className="text-green-400 shrink-0" />
-                <p className="text-xs sm:text-sm md:text-base text-gray-400 font-normal leading-relaxed">
+              <div className="flex items-center justify-center gap-2 max-w-lg mx-auto pt-1 text-center">
+                <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                <p className="text-xs sm:text-sm text-slate-500 font-normal leading-relaxed">
                   Together, we can build a more connected, transparent and responsive SSK community.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-center mt-4 sm:mt-6 md:mt-8">
-            <div className="max-w-[260px] sm:max-w-xs md:max-w-sm w-full px-2 sm:px-4">
+          {/* Deity / Heritage Reference */}
+          <div className="flex justify-center mt-4 sm:mt-6">
+            <div className="max-w-[240px] sm:max-w-xs w-full px-2 sm:px-4 bg-transparent border-0 shadow-none">
               <img 
                 src="https://i.pinimg.com/736x/68/ac/f6/68acf6f32a216959c497c7a232b35551.jpg" 
                 alt="Sahasrarjuna Illustration" 
-                className="w-full h-auto max-h-[280px] sm:max-h-[340px] md:max-h-[380px] object-contain mx-auto rounded-2xl border border-white/10 shadow-2xl shadow-black/70"
+                className="w-full h-auto max-h-[260px] sm:max-h-[300px] object-contain mx-auto bg-transparent border-0 shadow-none"
               />
             </div>
           </div>
@@ -304,10 +307,11 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Modern Registry Marquees - The "Announcement Slider" */}
-      <section className="mt-12 md:mt-24 border-t border-white/5 pt-12">
-        <div className="container mx-auto px-4 md:px-6 mb-8">
-           <div className="flex flex-col items-center">
-              <h2 className="text-xl md:text-3xl font-cinzel uppercase tracking-[0.2em] text-white">In Association With</h2>
+      <section className="border-t border-slate-200/80 pt-10 sm:pt-14">
+        <div className="container mx-auto px-4 md:px-6 mb-6">
+           <div className="flex flex-col items-center text-center">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-saffron-600 mb-1">Affiliated Network</span>
+              <h2 className="text-xl md:text-2xl font-extrabold text-slate-900 tracking-tight">In Association With</h2>
            </div>
         </div>
         
@@ -315,58 +319,98 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Analytics Section */}
-      <main className="container mx-auto px-4 md:px-6 py-16 md:py-24 border-t border-white/5">
+      <main className="container mx-auto px-4 md:px-6 py-12 md:py-20 border-t border-slate-200/80">
         <section id="analytics" className="space-y-8 md:space-y-10">
-          <div className="text-center mb-16 md:mb-20">
-            <h2 className="text-2xl md:text-5xl font-cinzel text-center uppercase tracking-widest text-[#FF6600] flex items-center justify-center gap-3 md:gap-4">
-              <span className="text-[#FF6600]">•</span> LIVE ANALYTICS
+          <div className="text-center mb-10 md:mb-14">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-saffron-50 border border-saffron-200/60 text-saffron-700 text-xs font-semibold mb-2">
+              <Radio size={12} className="text-saffron-600 animate-pulse" />
+              Live Telemetry
+            </span>
+            <h2 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+              Community Live Analytics
             </h2>
-            <p className="text-[10px] md:text-[11px] font-black text-white uppercase tracking-[0.4em] mt-4 md:mt-6 font-mono opacity-80">
-              REAL-TIME UPLINK: {currentTime.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit', second: '2-digit' }).toUpperCase()}
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-2">
+              Real-Time Uplink: {currentTime.toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit', second: '2-digit' })}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 md:gap-8">
-            <div className="md:col-span-4 analytics-card p-5 sm:p-8 md:p-12 flex flex-col items-center justify-center min-h-[300px] sm:min-h-[360px] md:min-h-[420px]">
-              <Globe className="globe-watermark" size={140} />
-              <div className="mb-4 sm:mb-6 md:mb-10 text-gray-700">
-                <Users size={42} strokeWidth={1} />
+            {/* Stat 1: Total Members */}
+            <div className="md:col-span-4 analytics-card p-6 sm:p-8 md:p-10 flex flex-col justify-between min-h-[300px]">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                  Total Verified Members
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-saffron-50 border border-saffron-100 flex items-center justify-center text-saffron-600">
+                  <Users size={20} />
+                </div>
               </div>
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white mb-4 sm:mb-6 md:mb-8 text-center">TOTAL VERIFIED MEMBERS</p>
-              <p className="text-7xl sm:text-8xl md:text-9xl font-normal text-[#FF6600] font-cinzel leading-none">
-                {members.length}
-              </p>
+              
+              <div className="my-auto py-2">
+                <p className="text-5xl sm:text-6xl md:text-7xl font-extrabold text-slate-900 tracking-tight tabular-nums">
+                  {members.length}
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Verified Samaj Families</span>
+                <span className="font-semibold text-emerald-600">Active Node</span>
+              </div>
             </div>
 
-            <div className="md:col-span-4 analytics-card p-5 sm:p-8 md:p-12 min-h-[300px] sm:min-h-[360px] md:min-h-[420px]">
-              <h3 className="chart-title mb-6 sm:mb-8 md:mb-12 text-center md:text-left">GENDER DISTRIBUTION</h3>
+            {/* Stat 2: Gender Distribution */}
+            <div className="md:col-span-4 analytics-card p-6 sm:p-8 min-h-[300px] flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="chart-title">Gender Distribution</h3>
+                <span className="text-[11px] font-semibold text-slate-400">Demographic</span>
+              </div>
               <GenderChart members={members} />
             </div>
 
-            <div className="md:col-span-4 analytics-card p-5 sm:p-8 md:p-12 min-h-[300px] sm:min-h-[360px] md:min-h-[420px]">
-              <h3 className="chart-title mb-6 sm:mb-8 md:mb-12 text-center md:text-left">PROFESSIONAL DEMOGRAPHICS</h3>
+            {/* Stat 3: Professional Demographics */}
+            <div className="md:col-span-4 analytics-card p-6 sm:p-8 min-h-[300px] flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="chart-title">Professional Profile</h3>
+                <span className="text-[11px] font-semibold text-slate-400">Careers</span>
+              </div>
               <OccupationChart members={members} />
             </div>
 
-            <div className="md:col-span-8 analytics-card p-5 sm:p-8 md:p-12 min-h-[340px] sm:min-h-[400px] md:min-h-[480px]">
-              <h3 className="chart-title mb-6 sm:mb-8 md:mb-12 text-center md:text-left">PEOPLE VOICE</h3>
+            {/* Stat 4: Support Needs */}
+            <div className="md:col-span-8 analytics-card p-6 sm:p-8 md:p-10 min-h-[340px] flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="chart-title">Community Support Needs</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">Identified areas where community intervention and assistance are requested</p>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-saffron-50 text-saffron-700 border border-saffron-100">
+                  Actionable
+                </span>
+              </div>
               <SupportChart members={members} />
             </div>
 
-            <div className="md:col-span-4 analytics-card p-5 sm:p-8 md:p-12 flex flex-col min-h-[340px] sm:min-h-[400px] md:min-h-[480px]">
-              <h3 className="chart-title mb-6 sm:mb-10 md:mb-14 text-center">NETWORK ACTIVITY</h3>
-              <div className="flex-1 flex flex-col items-center justify-center space-y-8 sm:space-y-10 md:space-y-12">
-                <div className="flex flex-col items-center">
-                  <div className="activity-icon-container mb-4 sm:mb-6 md:mb-8">
-                    <HeartPulse size={36} className="text-[#FF6600] animate-pulse-soft" />
+            {/* Stat 5: Network Activity */}
+            <div className="md:col-span-4 analytics-card p-6 sm:p-8 flex flex-col justify-between min-h-[340px]">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="chart-title">Network Activity</h3>
+                <span className="text-[11px] font-semibold text-slate-400">Deployments</span>
+              </div>
+              
+              <div className="flex-1 flex flex-col items-center justify-center space-y-6 py-4">
+                <div className="flex flex-col items-center text-center">
+                  <div className="activity-icon-container mb-3">
+                    <UserCheck size={28} className="text-saffron-600 animate-pulse-soft" />
                   </div>
-                  <p className="text-4xl sm:text-5xl md:text-6xl font-black text-[#FF6600] font-cinzel leading-none">{volunteers.length}</p>
-                  <p className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] mt-2 md:mt-3">VOLUNTEERS</p>
+                  <p className="text-4xl sm:text-5xl font-extrabold text-slate-900 tabular-nums">{volunteers.length}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Field Volunteers</p>
                 </div>
-                <div className="w-1/2 h-px bg-white/5"></div>
-                <div className="flex flex-col items-center">
-                  <p className="text-4xl sm:text-5xl md:text-6xl font-black text-[#FF6600] font-cinzel leading-none">{organisations.length}</p>
-                  <p className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-[0.4em] mt-2 md:mt-3">ORGANIZATIONS</p>
+                
+                <div className="w-full h-px bg-slate-100"></div>
+
+                <div className="flex flex-col items-center text-center">
+                  <p className="text-3xl sm:text-4xl font-extrabold text-slate-900 tabular-nums">{organisations.length}</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">Samaj Organisations</p>
                 </div>
               </div>
             </div>
@@ -374,43 +418,51 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* Hall of Fame */}
-        <section className="mt-14 sm:mt-24 md:mt-40">
+        <section className="mt-14 sm:mt-20">
            <Rewards members={members} volunteers={volunteers} organisations={organisations} />
         </section>
 
-        <section className="mt-14 sm:mt-24 md:mt-40">
+        {/* Leaderboard */}
+        <section className="mt-14 sm:mt-20">
            <Leaderboard members={members} organisations={organisations} volunteers={volunteers} />
         </section>
 
         {/* Join Registry CTA */}
-        <section className="text-center pt-14 sm:pt-24 md:pt-32 pb-8 md:pb-12 px-2 md:px-4">
-          <div className="max-w-4xl mx-auto py-8 sm:py-10 md:py-12 px-4 sm:px-6 md:px-12 bg-[#000000] border border-white/5 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
+        <section className="text-center pt-14 sm:pt-20 pb-8 px-2 sm:px-4">
+          <div className="max-w-4xl mx-auto py-10 sm:py-14 px-6 sm:px-12 bg-gradient-to-br from-[#0B1020] via-[#0E1528] to-[#111827] text-white border border-slate-800 rounded-3xl shadow-2xl relative overflow-hidden group">
+            {/* Subtle glow */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-saffron-500/20 to-saffron-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
             <div className="relative z-10">
-              <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-cinzel text-white uppercase tracking-[0.2em] mb-4 sm:mb-6">
-                JOIN THE REGISTRY
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-saffron-300 border border-white/10 text-xs font-semibold mb-3">
+                <Sparkles size={13} className="text-saffron-400" />
+                Community Direct Channel
+              </span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-3">
+                Join the SSK Registry
               </h2>
-              <p className="text-white/70 font-normal text-xs sm:text-sm md:text-lg mb-8 sm:mb-10 md:mb-12 max-w-lg mx-auto px-2">
-                Become a verified contributor to the global SSK database.
+              <p className="text-slate-300 font-normal text-xs sm:text-sm md:text-base mb-8 max-w-lg mx-auto">
+                Become a verified contributor or register your family with the global SSK community database.
               </p>
               <div className="flex justify-center">
                 <a 
                   href="tel:+918884449689" 
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 sm:px-10 md:px-14 py-3.5 sm:py-5 md:py-6 bg-[#E65100] hover:bg-[#FF6600] rounded-full text-base sm:text-xl md:text-2xl font-bold tracking-tight transition-all shadow-[0_15px_40px_-10px_rgba(230,81,0,0.5)] active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-3 px-8 sm:px-12 py-4 bg-gradient-to-r from-[#FF8A00] to-[#E87500] hover:from-[#E87500] hover:to-[#C65E00] rounded-2xl text-base sm:text-lg font-bold tracking-tight text-black transition-all shadow-[0_10px_30px_rgba(255,138,0,0.35)] active:scale-[0.98]"
                 >
-                  +91 888 444 9689
+                  <Phone size={20} />
+                  <span>Call Helpline: +91 888 444 9689</span>
                 </a>
               </div>
             </div>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-orange-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
           </div>
         </section>
 
-        {/* Volunteer Announcement Bar - Positioned directly below Join Registry */}
-        <section className="pb-16 md:pb-24">
-          <div className="container mx-auto px-4 md:px-6 mb-4 mt-8">
-             <div className="flex flex-col items-center">
-                <span className="text-[9px] font-black uppercase tracking-[0.5em] text-blue-500/60 mb-1">Our Dedicated Personnel</span>
-                <h2 className="text-lg md:text-2xl font-cinzel uppercase tracking-[0.2em] text-white">Volunteers</h2>
+        {/* Volunteer Announcement Bar */}
+        <section className="pb-12 md:pb-16">
+          <div className="container mx-auto px-4 md:px-6 mb-4 mt-6">
+             <div className="flex flex-col items-center text-center">
+                <span className="text-xs font-bold uppercase tracking-wider text-saffron-600 mb-1">Our Dedicated Personnel</span>
+                <h2 className="text-lg md:text-2xl font-extrabold text-slate-900 tracking-tight">Active Field Volunteers</h2>
              </div>
           </div>
           <VolunteerMarquee volunteers={volunteers} />

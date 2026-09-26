@@ -1,13 +1,26 @@
 /* Base Tailwind directives are handled by the CDN script in index.html */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --bg-main: #F5F7FB;
+  --navy-deep: #0B1020;
+  --navy-midnight: #111827;
+  --primary: #FF8A00;
+  --primary-hover: #E87500;
+  --primary-light: #FFF1DC;
+  --accent: #FFB347;
+  --primary-saffron: #FF8A00;
+  --dark-saffron: #E87500;
+  --light-saffron: #FFB347;
+  --soft-saffron: #FFF1DC;
+  --card-bg: #FFFFFF;
+  --border-light: #E2E8F0;
 }
 
 body {
-  background-color: #000000;
-  color: #ffffff;
-  font-family: 'Jost', sans-serif;
+  background-color: #F5F7FB;
+  color: #111827;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   margin: 0;
   padding: 0;
 }
@@ -16,65 +29,71 @@ body {
   font-family: 'Cinzel', serif;
 }
 
-/* Ensure native selectors are dark */
+/* Native select styling */
 select {
-  background-color: #050505;
-  color: white;
+  background-color: #FFFFFF;
+  color: #111827;
 }
 
-/* Exact Chart Card Styling */
+/* Premium Dashboard Card Styling */
 .analytics-card {
-  background: #050505;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 20px -4px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.analytics-card:hover {
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.09), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+  border-color: #CBD5E1;
 }
 
 .chart-title {
-  font-family: 'Cinzel', serif;
-  color: #FF6600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 1.1rem;
-  font-weight: 500;
+  color: #111827;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-size: 1rem;
 }
 
-/* Stat card watermark */
+/* Subtle watermark */
 .globe-watermark {
   position: absolute;
   top: 10%;
   right: 5%;
-  opacity: 0.05;
+  opacity: 0.04;
   pointer-events: none;
+  color: #FF8A00;
 }
 
 .activity-icon-container {
-  height: 80px;
-  width: 80px;
-  background: rgba(255, 102, 0, 0.05);
+  height: 72px;
+  width: 72px;
+  background: #FFF1DC;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #E87500;
 }
 
 @keyframes pulse-soft {
   0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.7; }
+  50% { transform: scale(1.08); opacity: 0.8; }
 }
 
 .animate-pulse-soft {
   animation: pulse-soft 2.5s infinite ease-in-out;
 }
 
-/* Marquee Animation - Standard Speed */
+/* Marquee Animations */
 @keyframes marquee {
   0% { transform: translate3d(0, 0, 0); }
   100% { transform: translate3d(-50%, 0, 0); }
 }
 
-/* Marquee Animation - Slow/Premium Speed */
 @keyframes marquee-slow {
   0% { transform: translate3d(0, 0, 0); }
   100% { transform: translate3d(-50%, 0, 0); }
@@ -97,13 +116,19 @@ select {
 /* Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #000;
+  background: rgba(100, 116, 139, 0.08);
+  border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #333;
+  background: rgba(255, 138, 0, 0.25);
   border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 138, 0, 0.5);
 }

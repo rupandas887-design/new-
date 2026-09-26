@@ -18,7 +18,11 @@ import {
   FileText,
   X,
   RefreshCw,
-  History
+  History,
+  Phone,
+  Calendar,
+  Fingerprint,
+  ArrowRight
 } from 'lucide-react';
 
 const MemberUpdates: React.FC = () => {
@@ -53,7 +57,7 @@ const MemberUpdates: React.FC = () => {
       const { data, error } = await supabase
         .from('members')
         .select('*')
-        .or(`aadhaar.eq.${searchQuery},mobile.eq.${searchQuery}`)
+        .or(`aadhaar.eq.${searchQuery.trim()},mobile.eq.${searchQuery.trim()}`)
         .maybeSingle();
 
       if (error) throw error;
@@ -105,16 +109,20 @@ const MemberUpdates: React.FC = () => {
         .from('members')
         .update({
           previous_address: member.address,
-          address: newAddress,
+          address: newAddress.trim(),
           address_proof_url: proofUrl
         })
         .eq('id', member.id);
 
       if (error) throw error;
 
-      addNotification("Address updated successfully.", "success");
-      // Refresh member data
-      setMember({ ...member, previous_address: member.address, address: newAddress, address_proof_url: proofUrl });
+      addNotification("Address updated in registry.", "success");
+      setMember({
+        ...member,
+        previous_address: member.address,
+        address: newAddress.trim(),
+        address_proof_url: proofUrl
+      });
       setUpdateType(null);
       setNewAddress('');
       setAddressProof(null);
@@ -128,13 +136,13 @@ const MemberUpdates: React.FC = () => {
 
   const handleMarkDeceased = async () => {
     if (!member || !deathProof) {
-      addNotification("Proof of death is required.", "error");
+      addNotification("Death certificate or official proof required.", "error");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const proofUrl = await uploadFile(deathProof, 'death_proof');
+      const proofUrl = await uploadFile(deathProof, 'death_cert');
       
       const { error } = await supabase
         .from('members')
@@ -159,48 +167,56 @@ const MemberUpdates: React.FC = () => {
   };
 
   return (
-    <DashboardLayout title="Member Updates Dashboard">
-      <div className="max-w-4xl mx-auto space-y-8 pb-20">
+    <DashboardLayout title="Member Updates Portal">
+      <div className="max-w-4xl mx-auto space-y-6 pb-20">
+        
         {/* Search Section */}
-        <Card className="bg-[#0a0c14] border-white/5 p-8">
-          <form onSubmit={handleSearch} className="space-y-6">
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">Search Registry</label>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Input 
-                    placeholder="Enter Aadhaar or Mobile Number" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-black/40"
-                  />
-                </div>
-                <Button type="submit" disabled={isSearching} className="px-8">
-                  {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
-                  <span className="ml-2">Search</span>
-                </Button>
+        <Card 
+          title="Find Citizen Record" 
+          subtitle="Query the Samaj registry by 12-digit Aadhaar UID or 10-digit primary mobile number"
+          className="border-slate-200/80 shadow-card p-6 sm:p-8"
+        >
+          <form onSubmit={handleSearch} className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Input 
+                  placeholder="Enter Aadhaar (12 digits) or Mobile (10 digits)..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  icon={<Search size={16} />}
+                />
               </div>
+              <Button type="submit" disabled={isSearching} className="px-6 py-2.5 text-xs font-bold gap-2">
+                {isSearching ? <RefreshCw className="animate-spin" size={16} /> : <Search size={16} />}
+                <span>Locate Member</span>
+              </Button>
             </div>
           </form>
         </Card>
 
         {member && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+          <div className="space-y-6">
             {/* Member Profile Card */}
-            <Card className="bg-[#0a0c14] border-white/5 overflow-hidden">
-              <div className="p-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="flex items-center gap-6">
-                  <div className="h-20 w-20 rounded-3xl bg-orange-600/10 border border-orange-500/20 flex items-center justify-center text-orange-500">
-                    <User size={40} strokeWidth={1.5} />
+            <Card className="border-slate-200/80 shadow-card p-0 overflow-hidden">
+              <div className="p-6 sm:p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-50/50">
+                <div className="flex items-center gap-4 sm:gap-5">
+                  <div className="h-16 w-16 rounded-2xl bg-saffron-50 border border-saffron-100 flex items-center justify-center text-saffron-600 shadow-sm shrink-0">
+                    <User size={30} strokeWidth={1.75} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-cinzel font-bold text-white uppercase">{member.name} {member.surname}</h2>
-                    <p className="text-xs font-mono text-gray-500 mt-1 uppercase tracking-widest">ID: {member.aadhaar}</p>
-                    <div className="mt-2 flex items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900">
+                      {member.name} {member.surname}
+                    </h2>
+                    <p className="text-xs font-mono text-slate-500 mt-0.5">
+                      Citizen ID: {member.aadhaar} • Mobile: {member.mobile}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                         member.status === MemberStatus.Deceased 
-                          ? 'bg-red-500/10 text-red-500 border-red-500/20' 
-                          : 'bg-green-500/10 text-green-500 border-green-500/20'
+                          ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                          : member.status === MemberStatus.Accepted
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : 'bg-amber-50 text-amber-700 border-amber-200'
                       }`}>
                         {member.status}
                       </span>
@@ -208,107 +224,109 @@ const MemberUpdates: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                <div className="flex flex-wrap gap-2.5 w-full md:w-auto">
                   <Button 
                     variant="secondary" 
                     onClick={() => setUpdateType('address')}
-                    className="flex-1 md:flex-initial text-[10px] font-black tracking-widest uppercase py-3"
+                    className="flex-1 md:flex-initial text-xs font-semibold gap-1.5"
                     disabled={member.status === MemberStatus.Deceased}
                   >
-                    <MapPin size={14} className="mr-2" />
-                    Address Change
+                    <MapPin size={14} />
+                    <span>Change Address</span>
                   </Button>
                   <Button 
-                    variant="secondary" 
+                    variant="danger"
                     onClick={() => setUpdateType('deceased')}
-                    className="flex-1 md:flex-initial text-[10px] font-black tracking-widest uppercase border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white py-3"
+                    className="flex-1 md:flex-initial text-xs font-bold gap-1.5"
                     disabled={member.status === MemberStatus.Deceased}
                   >
-                    <Skull size={14} className="mr-2" />
-                    Mark Deceased
+                    <Skull size={14} />
+                    <span>Mark Deceased</span>
                   </Button>
                 </div>
               </div>
 
-              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="space-y-6">
+              <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                <div className="space-y-4">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 mb-2">Current Address</p>
-                    <p className="text-sm text-gray-300 leading-relaxed bg-white/5 p-4 rounded-2xl border border-white/5">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Current Residence</p>
+                    <p className="text-sm font-medium text-slate-800 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 leading-relaxed">
                       {member.address}
                     </p>
                   </div>
                   {member.previous_address && (
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <History size={12} className="text-gray-600" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600">Previous Address</p>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <History size={13} className="text-slate-400" />
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Previous Address</p>
                       </div>
-                      <p className="text-xs text-gray-500 leading-relaxed bg-white/[0.02] p-4 rounded-2xl border border-white/5 italic">
+                      <p className="text-xs text-slate-500 bg-slate-50/60 p-3 rounded-xl border border-slate-200/60 italic leading-relaxed">
                         {member.previous_address}
                       </p>
                     </div>
                   )}
                 </div>
 
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 mb-1">Mobile</p>
-                      <p className="text-sm font-bold text-white">{member.mobile}</p>
+                <div className="space-y-3">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Dossier Details</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase block">Father / Husband</span>
+                      <span className="text-xs font-bold text-slate-800">{member.father_name || 'N/A'}</span>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 mb-1">Father's Name</p>
-                      <p className="text-sm font-bold text-white">{member.father_name}</p>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase block">Date of Birth</span>
+                      <span className="text-xs font-bold text-slate-800">{member.dob || 'N/A'}</span>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 mb-1">Gender</p>
-                      <p className="text-sm font-bold text-white">{member.gender}</p>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase block">Gender</span>
+                      <span className="text-xs font-bold text-slate-800">{member.gender || 'N/A'}</span>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 mb-1">DOB</p>
-                      <p className="text-sm font-bold text-white">{member.dob}</p>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase block">Pincode</span>
+                      <span className="text-xs font-bold text-slate-800">{member.pincode || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </Card>
 
-            {/* Update Forms */}
+            {/* Address Relocation Card */}
             {updateType === 'address' && (
-              <Card className="bg-[#0a0c14] border-orange-500/20 p-8 animate-in slide-in-from-top-4 duration-500">
-                <div className="flex justify-between items-center mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-orange-600/10 rounded-xl text-orange-500">
-                      <MapPin size={24} />
-                    </div>
-                    <h3 className="text-xl font-cinzel font-bold text-white uppercase">Address Relocation Update</h3>
-                  </div>
-                  <button onClick={() => setUpdateType(null)} className="p-2 hover:bg-white/5 rounded-full text-gray-500">
-                    <X size={20} />
-                  </button>
-                </div>
+              <Card 
+                title="Address Relocation Request" 
+                subtitle="Update member address with verified proof of relocation"
+                className="border-saffron-200 shadow-card p-6 sm:p-8 relative"
+              >
+                <button 
+                  onClick={() => setUpdateType(null)} 
+                  className="absolute top-6 right-6 p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={18} />
+                </button>
 
-                <div className="space-y-8">
+                <div className="space-y-5 pt-2">
                   <Input 
-                    label="NEW RESIDENTIAL ADDRESS *" 
+                    label="New Residential Address *" 
                     value={newAddress} 
                     onChange={(e) => setNewAddress(e.target.value)}
-                    placeholder="Enter the complete new address"
+                    placeholder="Enter full new residential address"
+                    required
                   />
 
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">PROOF OF ADDRESS CHANGE *</label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700">Proof of Address Document (JPG/PNG) *</label>
                     <div 
                       onClick={() => addressInputRef.current?.click()}
-                      className="relative border-2 border-dashed border-white/10 rounded-[2rem] bg-black/40 aspect-video flex flex-col items-center justify-center cursor-pointer hover:border-orange-500/50 transition-all overflow-hidden"
+                      className="border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 aspect-video max-h-48 flex flex-col items-center justify-center cursor-pointer hover:border-saffron-400 hover:bg-saffron-50/20 transition-all overflow-hidden"
                     >
                       {addressPreview ? (
-                        <img src={addressPreview} className="w-full h-full object-cover" />
+                        <img src={addressPreview} className="w-full h-full object-cover" alt="Proof preview" />
                       ) : (
-                        <div className="flex flex-col items-center gap-4 text-gray-600">
-                          <Upload size={48} strokeWidth={1} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Upload Document (JPG/PNG)</span>
+                        <div className="flex flex-col items-center gap-2 text-slate-400">
+                          <Upload size={32} />
+                          <span className="text-xs font-semibold text-slate-600">Click to upload address proof</span>
+                          <span className="text-[10px] text-slate-400">Utility bill, Aadhaar update, or rental agreement</span>
                         </div>
                       )}
                       <input 
@@ -321,54 +339,57 @@ const MemberUpdates: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-4 pt-4">
-                    <Button variant="secondary" onClick={() => setUpdateType(null)}>Cancel</Button>
-                    <Button onClick={handleAddressUpdate} disabled={isSubmitting} className="px-12">
-                      {isSubmitting ? <RefreshCw className="animate-spin mr-2" size={18} /> : <CheckCircle2 className="mr-2" size={18} />}
-                      Update Registry
+                  <div className="flex justify-end gap-3 pt-3">
+                    <Button variant="secondary" onClick={() => setUpdateType(null)} className="text-xs">
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddressUpdate} disabled={isSubmitting} className="text-xs font-bold gap-2">
+                      {isSubmitting ? <RefreshCw className="animate-spin" size={15} /> : <CheckCircle2 size={15} />}
+                      <span>Save Address Relocation</span>
                     </Button>
                   </div>
                 </div>
               </Card>
             )}
 
+            {/* Deceased Status Card */}
             {updateType === 'deceased' && (
-              <Card className="bg-[#0a0c14] border-red-500/20 p-8 animate-in slide-in-from-top-4 duration-500">
-                <div className="flex justify-between items-center mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-red-600/10 rounded-xl text-red-500">
-                      <Skull size={24} />
-                    </div>
-                    <h3 className="text-xl font-cinzel font-bold text-white uppercase">Deceased Status Registry</h3>
-                  </div>
-                  <button onClick={() => setUpdateType(null)} className="p-2 hover:bg-white/5 rounded-full text-gray-500">
-                    <X size={20} />
-                  </button>
-                </div>
+              <Card 
+                title="Mark Citizen as Deceased" 
+                subtitle="Permanent registry status change with mandatory proof of death certificate"
+                className="border-rose-200 shadow-card p-6 sm:p-8 relative"
+              >
+                <button 
+                  onClick={() => setUpdateType(null)} 
+                  className="absolute top-6 right-6 p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                >
+                  <X size={18} />
+                </button>
 
-                <div className="space-y-8">
-                  <div className="p-6 bg-red-600/5 border border-red-500/10 rounded-2xl flex items-start gap-4">
-                    <AlertCircle className="text-red-500 shrink-0 mt-1" size={20} />
+                <div className="space-y-5 pt-2">
+                  <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+                    <AlertCircle className="text-rose-600 shrink-0 mt-0.5" size={20} />
                     <div>
-                      <p className="text-xs font-bold text-red-400 uppercase tracking-wider">Critical Action Required</p>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1 leading-relaxed">
-                        Marking a member as deceased is an irreversible registry action. A valid death certificate or official proof must be uploaded.
+                      <p className="text-xs font-bold text-rose-900">Irreversible Action Warning</p>
+                      <p className="text-xs text-rose-700 mt-0.5 leading-relaxed">
+                        Marking this member as deceased will permanently adjust their status in the global census ledger. An official certificate is strictly required for legal audit.
                       </p>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500">PROOF OF DEATH / CERTIFICATE *</label>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700">Official Death Certificate (JPG/PNG) *</label>
                     <div 
                       onClick={() => deathInputRef.current?.click()}
-                      className="relative border-2 border-dashed border-white/10 rounded-[2rem] bg-black/40 aspect-video flex flex-col items-center justify-center cursor-pointer hover:border-red-500/50 transition-all overflow-hidden"
+                      className="border-2 border-dashed border-rose-200 rounded-2xl bg-rose-50/30 aspect-video max-h-48 flex flex-col items-center justify-center cursor-pointer hover:border-rose-400 transition-all overflow-hidden"
                     >
                       {deathPreview ? (
-                        <img src={deathPreview} className="w-full h-full object-cover" />
+                        <img src={deathPreview} className="w-full h-full object-cover" alt="Death certificate preview" />
                       ) : (
-                        <div className="flex flex-col items-center gap-4 text-gray-600">
-                          <FileText size={48} strokeWidth={1} />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Upload Certificate (JPG/PNG)</span>
+                        <div className="flex flex-col items-center gap-2 text-rose-400">
+                          <FileText size={32} />
+                          <span className="text-xs font-semibold text-rose-700">Upload Death Certificate</span>
+                          <span className="text-[10px] text-slate-400">Official government issued document</span>
                         </div>
                       )}
                       <input 
@@ -381,11 +402,13 @@ const MemberUpdates: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-4 pt-4">
-                    <Button variant="secondary" onClick={() => setUpdateType(null)}>Cancel</Button>
-                    <Button onClick={handleMarkDeceased} disabled={isSubmitting} className="px-12 bg-red-600 hover:bg-red-700 border-red-600">
-                      {isSubmitting ? <RefreshCw className="animate-spin mr-2" size={18} /> : <Skull className="mr-2" size={18} />}
-                      Finalize Deceased Status
+                  <div className="flex justify-end gap-3 pt-3">
+                    <Button variant="secondary" onClick={() => setUpdateType(null)} className="text-xs">
+                      Cancel
+                    </Button>
+                    <Button onClick={handleMarkDeceased} disabled={isSubmitting} variant="danger" className="text-xs font-bold gap-2">
+                      {isSubmitting ? <RefreshCw className="animate-spin" size={15} /> : <Skull size={15} />}
+                      <span>Finalize Deceased Status</span>
                     </Button>
                   </div>
                 </div>
@@ -395,9 +418,9 @@ const MemberUpdates: React.FC = () => {
         )}
 
         {!member && !isSearching && searchQuery && (
-          <div className="py-20 flex flex-col items-center justify-center text-gray-700 space-y-4">
-            <AlertCircle size={48} strokeWidth={1} />
-            <p className="text-[10px] font-black uppercase tracking-[0.5em]">No Registry Match Found</p>
+          <div className="py-16 flex flex-col items-center justify-center text-slate-400 space-y-2">
+            <AlertCircle size={40} className="text-slate-300" />
+            <p className="text-xs font-semibold text-slate-500">No member found matching "{searchQuery}"</p>
           </div>
         )}
       </div>

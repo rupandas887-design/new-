@@ -19,11 +19,11 @@ const OccupationChart: React.FC<OccupationChartProps> = ({ members }) => {
 
     const data = Object.entries(occupationCounts).map(([name, value]) => ({ name, value }));
     
-    // Expanded multi-color palette for 12 items
+    // Sophisticated palette rooted in Saffron, Warm Amber, Slate, and accents
     const COLORS = [
-      '#008CFF', '#00C9A7', '#FFCC00', '#FF7E00', '#9D70FF', 
-      '#FF7070', '#50E3C2', '#F48FB1', '#81C784', '#BDBDBD',
-      '#E91E63', '#00BCD4'
+      '#FF8A00', '#E87500', '#FFB347', '#FF9E24', '#06B6D4', 
+      '#10B981', '#0284C7', '#D97706', '#F59E0B', '#64748B',
+      '#C65E00', '#FF7A00'
     ];
 
     const isMobile = window.innerWidth < 768;
@@ -36,20 +36,27 @@ const OccupationChart: React.FC<OccupationChartProps> = ({ members }) => {
                     <YAxis 
                         dataKey="name" 
                         type="category" 
-                        stroke="#4b5563" 
-                        fontSize={isMobile ? 8 : 10} 
+                        stroke="#94A3B8" 
+                        fontSize={isMobile ? 10 : 11} 
                         width={isMobile ? 100 : 130}
-                        tick={{ fill: '#9ca3af', fontWeight: 'bold' }}
+                        tick={{ fill: '#475569', fontWeight: 600 }}
                         axisLine={false}
                         tickLine={false}
                     />
                     <Tooltip 
-                        cursor={{ fill: 'rgba(255,255,255,0.03)' }} 
-                        contentStyle={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff' }}
-                        itemStyle={{ color: '#fff' }}
-                        labelStyle={{ color: '#fff' }}
+                        cursor={{ fill: 'rgba(255, 138, 0, 0.05)' }} 
+                        contentStyle={{ 
+                            backgroundColor: '#FFFFFF', 
+                            border: '1px solid #E2E8F0', 
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                            color: '#111827',
+                            fontSize: '12px',
+                            fontWeight: 600
+                        }}
+                        itemStyle={{ color: '#111827' }}
                     />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={isMobile ? 8 : 14}>
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={isMobile ? 10 : 16}>
                         {data.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}

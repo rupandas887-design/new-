@@ -53,20 +53,34 @@ const AdminDashboard: React.FC = () => {
                 supabase.from('members').select('*')
             ]);
 
+            if (orgsRes.error) console.error("AdminDashboard organisations error:", orgsRes.error);
+            if (membersRes.error) console.error("AdminDashboard members error:", membersRes.error);
+
             const fetchedOrgs = orgsRes.data || [];
             const fetchedMembers = membersRes.data || [];
             
             setOrgs(fetchedOrgs);
             setMembers(fetchedMembers);
 
-            const { data: profilesData, error: profilesError } = await supabase
+            let profilesData: any[] | null = null;
+            const { data: pData, error: profilesError } = await supabase
                 .from('profiles')
                 .select(`
                     *,
                     organisations!organisation_id(name)
                 `);
 
-            if (profilesError) throw profilesError;
+            if (profilesError) {
+                console.warn("Profiles with org join error, falling back to simple query:", profilesError);
+                const fallbackProfiles = await supabase.from('profiles').select('*');
+                if (fallbackProfiles.error) {
+                    console.error("Profiles fallback query error:", fallbackProfiles.error);
+                } else {
+                    profilesData = fallbackProfiles.data;
+                }
+            } else {
+                profilesData = pData;
+            }
 
             if (profilesData) {
                 const volunteerProfiles = profilesData.filter(p => 
@@ -171,74 +185,80 @@ const AdminDashboard: React.FC = () => {
 
     return (
         <DashboardLayout title="Network Intelligence Dashboard">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-                <Card className="p-5 sm:p-8 border-l-4 border-orange-600 bg-[#080808] hover:bg-[#0a0a0a] transition-all group relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:rotate-12 transition-transform">
-                        <Map size={80} />
-                    </div>
-                    <div className="flex justify-between items-center mb-4">
-                      <Shield className="text-orange-600 group-hover:scale-110 transition-transform" size={28} strokeWidth={1.5} />
-                      <span className="text-[9px] font-black text-orange-600/50 uppercase tracking-[0.2em]">Deployments</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+                <Card className="p-6 border border-slate-200/80 shadow-card hover:shadow-card-hover transition-all group relative overflow-hidden">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-saffron-50 border border-saffron-100 flex items-center justify-center text-saffron-600 shadow-sm">
+                        <Shield size={22} strokeWidth={2} />
+                      </div>
+                      <span className="text-[11px] font-bold text-saffron-700 bg-saffron-50 border border-saffron-100 px-2.5 py-0.5 rounded-full">
+                        Organizations
+                      </span>
                     </div>
                     <div>
-                        <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold mb-1">Active Organizations</p>
-                        <p className="text-3xl sm:text-5xl font-black text-orange-500 font-mono tabular-nums">{loading ? '...' : organisations.length}</p>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Active Organizations</p>
+                        <p className="text-4xl sm:text-5xl font-extrabold text-slate-900 font-sans tabular-nums">{loading ? '...' : organisations.length}</p>
                     </div>
                 </Card>
                 
                 <button 
                     onClick={() => setIsVolunteersModalOpen(true)}
-                    className="text-left w-full block group relative overflow-hidden rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    className="text-left w-full block group relative overflow-hidden rounded-2xl outline-none focus:ring-2 focus:ring-saffron-500/50 transition-all"
                 >
-                    <Card className="p-5 sm:p-8 border-l-4 border-blue-600 bg-[#080808] group-hover:bg-[#0a0a0a] transition-all h-full relative">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:-rotate-12 transition-transform">
-                            <Users size={80} />
-                        </div>
-                        <div className="flex justify-between items-center mb-4">
-                            <Users className="text-blue-600 group-hover:scale-110 transition-transform" size={28} strokeWidth={1.5} />
-                            <span className="text-[9px] font-black text-blue-600/50 uppercase tracking-[0.2em]">Personnel</span>
+                    <Card className="p-6 border border-slate-200/80 shadow-card group-hover:shadow-card-hover group-hover:border-saffron-300 transition-all h-full relative">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="w-12 h-12 rounded-xl bg-saffron-100 border border-saffron-200 flex items-center justify-center text-saffron-600 shadow-sm">
+                                <Users size={22} strokeWidth={2} />
+                            </div>
+                            <span className="text-[11px] font-bold text-saffron-700 bg-saffron-100 border border-saffron-200 px-2.5 py-0.5 rounded-full">
+                                Field Personnel
+                            </span>
                         </div>
                         <div>
-                            <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold mb-1">Volunteers</p>
-                            <p className="text-3xl sm:text-5xl font-black text-orange-500 font-mono tabular-nums">{loading ? '...' : volunteersWithOrg.length}</p>
-                            <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-4 opacity-75 group-hover:opacity-100 transition-opacity">Access Personnel File →</p>
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Volunteers</p>
+                            <p className="text-4xl sm:text-5xl font-extrabold text-slate-900 font-sans tabular-nums">{loading ? '...' : volunteersWithOrg.length}</p>
+                            <p className="text-xs font-bold text-saffron-600 mt-3 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                                <span>View Personnel Directory</span>
+                                <span>→</span>
+                            </p>
                         </div>
                     </Card>
                 </button>
 
-                <Card className="p-5 sm:p-8 border-l-4 border-green-600 bg-[#080808] hover:bg-[#0a0a0a] transition-all group relative overflow-hidden sm:col-span-2 lg:col-span-1">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:scale-125 transition-transform">
-                        <Database size={80} />
-                    </div>
-                    <div className="flex justify-between items-center mb-4">
-                      <UserCheck className="text-green-600 group-hover:scale-110 transition-transform" size={28} strokeWidth={1.5} />
-                      <span className="text-[9px] font-black text-green-600/50 uppercase tracking-[0.2em]">Global Base</span>
+                <Card className="p-6 border border-slate-200/80 shadow-card hover:shadow-card-hover transition-all group relative overflow-hidden sm:col-span-2 lg:col-span-1">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shadow-sm">
+                        <UserCheck size={22} strokeWidth={2} />
+                      </div>
+                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 rounded-full">
+                        Registry Base
+                      </span>
                     </div>
                     <div>
-                        <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold mb-1">Total Enrolled Members</p>
-                        <p className="text-3xl sm:text-5xl font-black text-orange-500 font-mono tabular-nums">{loading ? '...' : members.length}</p>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Enrolled Members</p>
+                        <p className="text-4xl sm:text-5xl font-extrabold text-slate-900 font-sans tabular-nums">{loading ? '...' : members.length}</p>
                     </div>
                 </Card>
             </div>
 
-            <div className="mt-8 sm:mt-12">
-                <Card title="Organization Operational Matrix" className="bg-[#050505] border-white/5">
+            <div className="mt-8 sm:mt-10">
+                <Card title="Organization Operational Matrix" subtitle="Real-time volunteer and enrollment count by affiliated organization node" className="bg-white border-slate-200/80 p-0 overflow-hidden">
                     <div className="overflow-x-auto custom-scrollbar">
                         <table className="w-full text-left text-sm min-w-[550px]">
-                            <thead className="border-b border-gray-800">
-                                <tr className="text-gray-500 uppercase tracking-wider text-[10px] font-black">
-                                    <th className="p-5">Organization Node</th>
-                                    <th className="p-5 text-center">Active Volunteers</th>
-                                    <th className="p-5 text-center">Verified Enrollments</th>
-                                    <th className="p-5 text-right">Status</th>
+                            <thead className="bg-slate-50/80 border-b border-slate-200/80">
+                                <tr className="text-slate-600 text-xs font-bold tracking-wider">
+                                    <th className="px-6 py-4">Organization Node</th>
+                                    <th className="px-6 py-4 text-center">Active Volunteers</th>
+                                    <th className="px-6 py-4 text-center">Verified Enrollments</th>
+                                    <th className="px-6 py-4 text-right">Operational Status</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-900/50">
+                            <tbody className="divide-y divide-slate-100">
                                 {orgStats.map(org => (
-                                    <tr key={org.id} className="group hover:bg-white/[0.02] transition-colors">
-                                        <td className="p-5">
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 flex-shrink-0 rounded-xl overflow-hidden border border-white/10 group-hover:border-orange-500/50 transition-all shadow-lg bg-black/40">
+                                    <tr key={org.id} className="hover:bg-saffron-50/20 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3.5">
+                                                <div className="h-10 w-10 flex-shrink-0 rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-50 flex items-center justify-center">
                                                     {org.profile_photo_url ? (
                                                       <img 
                                                         src={org.profile_photo_url} 
@@ -246,25 +266,27 @@ const AdminDashboard: React.FC = () => {
                                                         className="h-full w-full object-cover"
                                                       />
                                                     ) : (
-                                                      <div className="h-full w-full flex items-center justify-center text-orange-500/50">
-                                                          <Building2 size={20} />
-                                                      </div>
+                                                      <Building2 size={20} className="text-saffron-500" />
                                                     )}
                                                 </div>
-                                                <span className="font-bold text-white text-base group-hover:text-orange-500 transition-colors truncate">{org.name}</span>
+                                                <span className="font-bold text-slate-900 text-sm truncate">{org.name}</span>
                                             </div>
                                         </td>
-                                        <td className="p-5 text-center">
-                                            <span className="font-mono text-xl text-blue-400 font-black">{org.volunteerCount}</span>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="text-base font-extrabold text-saffron-600 tabular-nums">{org.volunteerCount}</span>
                                         </td>
-                                        <td className="p-5 text-center">
-                                            <span className="font-mono text-xl text-green-400 font-black">{org.memberCount}</span>
+                                        <td className="px-6 py-4 text-center">
+                                            <span className="text-base font-extrabold text-emerald-600 tabular-nums">{org.memberCount}</span>
                                         </td>
-                                        <td className="p-5 text-right">
-                                            <div className="flex items-center justify-end gap-3">
-                                                <span className={`h-2 w-2 rounded-full ${org.status === 'Active' ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></span>
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{org.status}</span>
-                                            </div>
+                                        <td className="px-6 py-4 text-right">
+                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                org.status === 'Active' 
+                                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                                    : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                            }`}>
+                                                <span className={`h-1.5 w-1.5 rounded-full ${org.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                                <span>{org.status}</span>
+                                            </span>
                                         </td>
                                     </tr>
                                 ))}
@@ -277,86 +299,80 @@ const AdminDashboard: React.FC = () => {
             <Modal 
                 isOpen={isVolunteersModalOpen} 
                 onClose={() => setIsVolunteersModalOpen(false)} 
-                title="Volunteer Personnel File"
+                title="Volunteer Personnel Directory"
+                maxWidth="2xl"
             >
-                <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
-                    <div className="flex flex-col sm:flex-row gap-4">
+                <div className="space-y-5">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                             <input 
                                 type="text"
-                                placeholder="Filter Volunteers or Organizations..."
+                                placeholder="Search by name, organization, or phone..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-black/40 border border-gray-800 rounded-xl py-3 pl-10 pr-4 text-white text-xs font-mono focus:outline-none focus:border-orange-500 transition-all"
+                                className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-slate-900 text-xs font-medium focus:outline-none focus:border-saffron-500 focus:ring-4 focus:ring-saffron-500/15 transition-all shadow-sm"
                             />
                         </div>
                         <Button 
                             onClick={handleExportVolunteers}
-                            className="flex items-center justify-center gap-2 py-3 px-6 text-[10px] font-black uppercase tracking-widest bg-blue-600 hover:bg-blue-700"
+                            variant="secondary"
+                            size="sm"
+                            className="flex items-center justify-center gap-2"
                         >
-                            <FileSpreadsheet size={16} />
-                            Export
+                            <FileSpreadsheet size={15} />
+                            <span>Export CSV</span>
                         </Button>
                     </div>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
                         {filteredVolunteers.map(vol => (
-                            <div key={vol.id} className={`p-5 bg-gray-900/40 border border-gray-800/60 rounded-2xl flex items-center justify-between group hover:border-blue-500/40 transition-all ${vol.status === 'Deactivated' ? 'opacity-60 grayscale-[0.5]' : ''}`}>
-                                <div className="flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-inner group-hover:scale-105 transition-transform">
-                                        <UserIcon size={24} />
+                            <div key={vol.id} className={`p-4 bg-slate-50/80 border border-slate-200/80 rounded-xl flex items-center justify-between group hover:border-saffron-300 hover:bg-white transition-all shadow-sm ${vol.status === 'Deactivated' ? 'opacity-60' : ''}`}>
+                                <div className="flex items-center gap-3.5">
+                                    <div className="h-10 w-10 rounded-xl bg-saffron-50 flex items-center justify-center text-saffron-600 border border-saffron-100 font-bold text-xs shrink-0">
+                                        {vol.name.charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <p className="text-base font-bold text-white leading-none group-hover:text-blue-400 transition-colors">{vol.name}</p>
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/40 border border-white/5">
-                                                <span className={`h-1.5 w-1.5 rounded-full ${vol.status === 'Active' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                                                <span className={`text-[8px] font-black uppercase tracking-widest ${vol.status === 'Active' ? 'text-green-400' : 'text-red-400'}`}>
-                                                    {vol.status}
-                                                </span>
-                                            </div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm font-bold text-slate-900 leading-none group-hover:text-saffron-600 transition-colors">{vol.name}</p>
+                                            <span className={`text-[10px] font-bold px-2 py-0.2 rounded-md ${
+                                                vol.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                            }`}>
+                                                {vol.status}
+                                            </span>
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                            <div className="flex items-center gap-1.5">
-                                                <Building2 size={10} className="text-orange-500" />
-                                                <span className="text-[10px] font-black uppercase text-orange-500/80 tracking-widest">
-                                                    {vol.organisation_name}
-                                                </span>
-                                            </div>
-                                            <div className="h-1 w-1 rounded-full bg-gray-800"></div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Phone size={10} className="text-gray-600" />
-                                                <span className="text-[10px] font-mono text-gray-500">{vol.mobile}</span>
-                                            </div>
+                                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs text-slate-500">
+                                            <span className="font-semibold text-slate-700">{vol.organisation_name}</span>
+                                            <span>·</span>
+                                            <span>{vol.mobile}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-4">
                                     <div className="text-right hidden sm:block">
-                                        <div className="flex items-center justify-end gap-2 mb-1">
-                                            <TrendingUp size={14} className="text-blue-400" />
-                                            <span className="text-xl font-black text-white font-mono">{vol.enrollments}</span>
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <TrendingUp size={13} className="text-saffron-600" />
+                                            <span className="text-base font-extrabold text-slate-900 tabular-nums">{vol.enrollments}</span>
                                         </div>
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-600">Enrollments</span>
+                                        <span className="text-[10px] text-slate-400 font-medium">Entries</span>
                                     </div>
                                     
                                     <button 
                                         onClick={() => handleToggleVolunteerStatus(vol.id, vol.status)}
                                         disabled={statusTransitionId === vol.id}
-                                        className={`p-3 rounded-xl border transition-all flex items-center justify-center ${
+                                        className={`p-2 rounded-lg border transition-all flex items-center justify-center ${
                                             vol.status === 'Active' 
-                                            ? 'bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white' 
-                                            : 'bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500 hover:text-white'
+                                            ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100' 
+                                            : 'bg-emerald-50 border border-emerald-200 text-emerald-600 hover:bg-emerald-100'
                                         }`}
-                                        title={vol.status === 'Active' ? 'Deactivate Agent' : 'Activate Agent'}
+                                        title={vol.status === 'Active' ? 'Deactivate Volunteer' : 'Activate Volunteer'}
                                     >
                                         {statusTransitionId === vol.id ? (
-                                            <Loader2 size={18} className="animate-spin" />
+                                            <Loader2 size={16} className="animate-spin" />
                                         ) : vol.status === 'Active' ? (
-                                            <PowerOff size={18} />
+                                            <PowerOff size={16} />
                                         ) : (
-                                            <Power size={18} />
+                                            <Power size={16} />
                                         )}
                                     </button>
                                 </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   icon?: React.ReactNode;
   rightElement?: React.ReactNode;
@@ -23,35 +23,35 @@ const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={id} className="block text-xs font-black uppercase tracking-[0.15em] text-white/90 mb-2.5 group-focus-within:text-orange-400 transition-colors">
+        <label htmlFor={id} className="block text-xs font-semibold text-slate-700 mb-1.5 transition-colors">
           {label}
         </label>
       )}
       <div className="relative group">
         {icon && (
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors pointer-events-none">
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-saffron-600 transition-colors pointer-events-none">
             {icon}
           </div>
         )}
         <input
           id={id}
-          className={`w-full bg-black/60 rounded-xl py-3 ${icon ? 'pl-11' : 'px-4'} ${rightElement ? 'pr-11' : 'pr-4'} text-white placeholder-gray-700 focus:outline-none transition-all duration-200 font-medium text-sm sm:text-base ${
+          className={`w-full bg-white text-slate-900 rounded-xl py-2.5 ${icon ? 'pl-10' : 'px-3.5'} ${rightElement ? 'pr-24 sm:pr-28' : 'pr-3.5'} placeholder:text-slate-400 font-medium text-sm transition-all duration-200 shadow-sm ${
             isError
-              ? 'border-2 border-red-500/80 focus:border-red-500 focus:ring-1 focus:ring-red-500/30'
+              ? 'border border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-500/15 text-red-900'
               : isSuccess
-              ? 'border-2 border-emerald-500/80 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30'
-              : 'border border-gray-800 focus:ring-1 focus:ring-orange-500/40 focus:border-orange-500'
+              ? 'border border-emerald-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15'
+              : 'border border-slate-200 hover:border-slate-300 focus:border-saffron-500 focus:ring-4 focus:ring-saffron-500/15 focus:outline-none'
           } ${className}`}
           {...props}
         />
         {rightElement && (
-          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center z-10">
             {rightElement}
           </div>
         )}
       </div>
       {description && (
-        <p className="mt-1.5 text-[9px] font-bold text-gray-500 uppercase tracking-widest pl-1">
+        <p className="mt-1.5 text-xs text-slate-500">
           {description}
         </p>
       )}

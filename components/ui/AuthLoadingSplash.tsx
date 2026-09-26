@@ -1,34 +1,53 @@
-import React from 'react';
-import { Globe, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
+import BrandLogo from './BrandLogo';
 
 const AuthLoadingSplash: React.FC = () => {
+  const [showBypass, setShowBypass] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowBypass(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleBypass = () => {
+    try {
+      localStorage.removeItem('ssk_last_authenticated_route');
+    } catch (e) {
+      // ignore
+    }
+    window.location.hash = '#/';
+    window.location.reload();
+  };
+
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 relative selection:bg-orange-500/30">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-full pointer-events-none opacity-20">
-        <div className="absolute inset-0 bg-orange-600/10 blur-[150px] rounded-full"></div>
+    <div className="min-h-screen bg-[#F5F7FB] flex flex-col items-center justify-center p-6 relative">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl h-96 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-r from-saffron-500/10 via-saffron-400/10 to-saffron-500/10 blur-[100px] rounded-full"></div>
       </div>
       
-      <div className="relative z-10 flex flex-col items-center text-center space-y-6 animate-in">
-        <div className="inline-flex items-center gap-3 px-4 py-2 bg-orange-600/10 border border-orange-500/20 rounded-full text-orange-500">
-          <Globe size={14} className="animate-spin-slow" />
-          <span className="text-[9px] font-black uppercase tracking-[0.4em]">SSK Global Network</span>
+      <div className="relative z-10 flex flex-col items-center text-center space-y-6 animate-in fade-in duration-300">
+        <BrandLogo variant="light" size="lg" showSubtitle={true} />
+        
+        <div className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-white border border-saffron-100 shadow-sm text-saffron-600 text-xs font-semibold">
+          <Loader2 size={16} className="animate-spin text-saffron-600" />
+          <span>Restoring verified session...</span>
         </div>
-        
-        <h1 className="font-cinzel text-3xl sm:text-4xl text-white tracking-tight uppercase">
-          SSK <span className="text-orange-600">SECURE</span>
-        </h1>
-        
-        <div className="flex items-center gap-3 text-orange-500 text-xs font-black uppercase tracking-[0.3em] pt-2">
-          <Loader2 size={18} className="animate-spin" />
-          <span>Restoring Secure Session...</span>
-        </div>
-        
-        <p className="text-gray-600 text-[9px] tracking-[0.4em] uppercase font-black">
-          Identity Verification Terminal
-        </p>
+
+        {showBypass && (
+          <div className="pt-2 animate-in fade-in duration-300">
+            <button
+              onClick={handleBypass}
+              className="text-xs text-saffron-600 hover:text-saffron-800 underline font-semibold transition-colors"
+            >
+              Taking longer than expected? Click here to continue
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default AuthLoadingSplash;
+

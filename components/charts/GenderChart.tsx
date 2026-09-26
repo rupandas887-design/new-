@@ -19,8 +19,8 @@ const GenderChart: React.FC<GenderChartProps> = ({ members }) => {
     
     const data = Object.entries(genderCounts).map(([name, value]) => ({ name, value }));
 
-    // Precise colors: Orange (Male), Blue (Female), Yellow (Other)
-    const COLORS = ['#FF6600', '#0095FF', '#FFCC00'];
+    // Design System Colors: Primary Saffron (Male), Dark Saffron (Female), Light Saffron (Other)
+    const COLORS = ['#FF8A00', '#E87500', '#FFB347'];
 
     const isMobile = window.innerWidth < 768;
 
@@ -36,23 +36,31 @@ const GenderChart: React.FC<GenderChartProps> = ({ members }) => {
                         outerRadius={isMobile ? 85 : 110}
                         paddingAngle={4}
                         dataKey="value"
-                        stroke="none"
+                        stroke="#FFFFFF"
+                        strokeWidth={2}
                     >
                         {data.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                     </Pie>
                     <Tooltip 
-                        contentStyle={{ backgroundColor: '#000', border: '1px solid #333', color: '#fff' }}
-                        itemStyle={{ color: '#fff' }}
-                        labelStyle={{ color: '#fff' }}
+                        contentStyle={{ 
+                            backgroundColor: '#FFFFFF', 
+                            border: '1px solid #E2E8F0', 
+                            borderRadius: '12px',
+                            boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.1)',
+                            color: '#111827',
+                            fontSize: '12px',
+                            fontWeight: 600
+                        }}
+                        itemStyle={{ color: '#111827' }}
                     />
                     <Legend 
                       verticalAlign="bottom" 
                       align="center" 
-                      iconType="rect"
-                      iconSize={10}
-                      formatter={(value) => <span className="text-[10px] md:text-[12px] font-bold text-gray-500 uppercase tracking-[0.2em] ml-2">{value}</span>}
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value) => <span className="text-xs font-semibold text-slate-600 ml-1.5">{value}</span>}
                     />
                 </PieChart>
             </ResponsiveContainer>
